@@ -8,14 +8,20 @@ import { h, type View } from './ui/dom';
 import { highscoresView } from './ui/highscores';
 import { homeView } from './ui/home';
 import { speaker } from './ui/icons';
-import { soloGameView, soloSetupView } from './ui/solo';
+import { classicGameView } from './ui/classicGame';
+import { partySetupView, soloSetupView } from './ui/classicSetup';
+import { historyView } from './ui/history';
+import { savesView } from './ui/saves';
 import { setSound, soundOn } from './ui/sound';
 
 // Hash-Routing, weil GitHub Pages keine Unterpfade für Single-Page-Apps kennt.
 const routes: Record<string, () => View> = {
   '': homeView,
   solo: soloSetupView,
-  'solo/spiel': soloGameView,
+  party: partySetupView,
+  spiel: classicGameView,
+  spielstaende: savesView,
+  historie: historyView,
   bestenliste: highscoresView,
   credits: creditsView,
 };
@@ -41,7 +47,7 @@ function render(): void {
   const make = routes[path] ?? (() => ({ el: h('main.page', h('h1', 'Falsch abgebogen'), h('p', 'Diese Seite gibt es nicht.'), h('a.btn', { href: '#/' }, 'Zur Startseite')) }));
   current = make();
   outlet.replaceChildren(current.el);
-  document.body.classList.toggle('in-game', path === 'solo/spiel');
+  document.body.classList.toggle('in-game', path === 'spiel');
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', render);

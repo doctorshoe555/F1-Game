@@ -3,8 +3,8 @@
 Ein F1-Quiz mit Augenzwinkern, als rein statische Web-App für GitHub Pages.
 Inoffizielles Fanprojekt – keine Verbindung zur Formel 1, zur FIA oder zu den Teams.
 
-> **Stand: Etappe (b)** – Solo-Modus mit kuratierten Fragen im Renngrafik-Design. Speicherstände,
-> Mehrspieler, Jeopardy und der Fragen-Generator folgen in den nächsten Etappen.
+> **Stand: Etappe (c)** – Solo und Pass-and-Play (2–8 Spieler an einem Gerät) mit Speicherständen,
+> Bestenliste und Historie. Mehrspieler per Handy, Jeopardy und der Fragen-Generator folgen.
 
 ## Starten
 
@@ -21,14 +21,24 @@ npm run build      # statische Seite nach dist/
 | Pfad | Inhalt |
 |---|---|
 | `src/core/` | Spiellogik als reine Funktionen: Fragen ziehen, Punkte, Rundenablauf |
-| `src/storage/` | Speicherzugriff mit Fallback, Bestenliste |
-| `src/ui/` | Bildschirme (Start, Solo, Bestenliste) |
+| `src/storage/` | Speicherzugriff mit Fallback, Spielstände, Bestenliste, Historie |
+| `src/ui/` | Bildschirme (Start, Einstellungen, Spiel, Spielstände, Historie, Credits) |
 | `data/questions/curated/` | handgeschriebene Fragen |
 | `data/questions/generated/` | automatisch erzeugte Fragen (bisher: Streckenumrisse) |
 | `data/questions/review/` | Vorschläge, die nie ungeprüft ins Spiel kommen |
 | `data/schema/question.schema.json` | Schema aller Fragendateien |
 | `public/assets/` | Streckenumrisse und Flaggen als SVG |
 | `scripts/` | `validate.mjs`, `build-tracks.mjs` |
+
+## Spielstände
+
+- Laufende Spiele werden nach jedem Schritt automatisch im Browser gesichert (localStorage) und lassen sich
+  nach Neuladen oder Schließen über „Weiterspielen“ fortsetzen. Beim Fortsetzen startet die Uhr der
+  aktuellen Frage neu.
+- Unter „Speichern & Pause“ im Spiel lassen sich benannte Stände anlegen und als JSON-Datei exportieren;
+  die Seite „Spielstände“ importiert solche Dateien wieder – etwa auf einem anderen Gerät.
+- Erlaubt der Browser kein Speichern, läuft alles im Arbeitsspeicher weiter; die App weist darauf hin.
+- Bestenliste, Historie und Spielstände liegen nur auf dem jeweiligen Gerät.
 
 ## Fragen ergänzen
 

@@ -31,3 +31,6 @@ export function remove(key: string): void {
   memory.delete(key);
   try { ls()?.removeItem(PREFIX + key); } catch { /* egal */ }
 }
+
+/** Nur für Tests: Arbeitsspeicher-Fallback leeren. */
+export function clearMemory(): void { memory.clear(); }
