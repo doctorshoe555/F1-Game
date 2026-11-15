@@ -3,7 +3,7 @@
 Ein F1-Quiz mit Augenzwinkern, als rein statische Web-App für GitHub Pages.
 Inoffizielles Fanprojekt – keine Verbindung zur Formel 1, zur FIA oder zu den Teams.
 
-> **Stand: Etappe (a)** – Solo-Modus mit kuratierten Fragen. Design-Feinschliff, Speicherstände,
+> **Stand: Etappe (b)** – Solo-Modus mit kuratierten Fragen im Renngrafik-Design. Speicherstände,
 > Mehrspieler, Jeopardy und der Fragen-Generator folgen in den nächsten Etappen.
 
 ## Starten
@@ -42,4 +42,6 @@ Fragen zu veränderlichen Fakten automatisch auslaufen.
 ## Datenquellen und Lizenzen
 
 - Streckenumrisse: erzeugt aus [bacinger/f1-circuits](https://github.com/bacinger/f1-circuits) (MIT), siehe `data/sources/`.
-- Flaggen-Grafiken: selbst erstellt.
+- Flaggen-Grafiken und Icons: selbst erstellt.
+- Schriften: Barlow Condensed und Titillium Web (SIL Open Font License 1.1), lokal eingebunden.
+- Im Spiel listet die Seite „Credits & Lizenzen“ alle Bildnachweise aus den Fragendaten auf.

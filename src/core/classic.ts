@@ -14,7 +14,12 @@ export interface ClassicSettings {
 
 export interface ClassicPlayer { name: string; score: number; correct: number; answered: number; bestStreak: number; streak: number }
 
-export interface Outcome { player: number; answer: Answer; verdict: Verdict; gained: number; timeMs: number; timedOut: boolean }
+export interface Outcome {
+  player: number; answer: Answer; verdict: Verdict; gained: number; timeMs: number; timedOut: boolean;
+  /** schnellste richtige Antwort der bisherigen Runde („Fastest Lap“) */
+  fastestLap: boolean;
+}
+export interface FastestLap { player: number; timeMs: number; index: number }
 
 export interface ClassicState {
   v: 1;
@@ -28,6 +33,7 @@ export interface ClassicState {
   /** Zeitstempel (ms), seit dem die aktuelle Frage läuft */
   startedAt: number;
   last: Outcome | null;
+  fastest: FastestLap | null;
 }
 
 export function createClassic(settings: ClassicSettings, questions: Question[], names: string[], now: number, rnd: () => number = Math.random): ClassicState {
@@ -35,7 +41,7 @@ export function createClassic(settings: ClassicSettings, questions: Question[], 
     v: 1, settings,
     players: names.map((name) => ({ name, score: 0, correct: 0, answered: 0, bestStreak: 0, streak: 0 })),
     deck: questions.map((q) => deal(q, rnd)),
-    index: 0, phase: questions.length ? 'question' : 'done', startedAt: now, last: null,
+    index: 0, phase: questions.length ? 'question' : 'done', startedAt: now, last: null, fastest: null,
   };
 }
 
@@ -59,7 +65,12 @@ export function answerClassic(s: ClassicState, answer: Answer, now: number): Cla
     const streak = verdict.correct ? p.streak + 1 : 0;
     return { ...p, score: p.score + gained, correct: p.correct + (verdict.correct ? 1 : 0), answered: p.answered + 1, streak, bestStreak: Math.max(p.bestStreak, streak) };
   });
-  return { ...s, players, phase: 'reveal', last: { player: pi, answer: timedOut ? null : answer, verdict, gained, timeMs, timedOut } };
+  const fastestLap = verdict.correct && (!s.fastest || timeMs < s.fastest.timeMs);
+  return {
+    ...s, players, phase: 'reveal',
+    fastest: fastestLap ? { player: pi, timeMs, index: s.index } : s.fastest,
+    last: { player: pi, answer: timedOut ? null : answer, verdict, gained, timeMs, timedOut, fastestLap },
+  };
 }
 
 /** Weiter zur nächsten Frage bzw. zum Endstand. */

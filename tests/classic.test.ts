@@ -66,6 +66,18 @@ describe('klassische Runde', () => {
     const s = answerClassic(createClassic(settings, [tf('1')], ['Solo'], T0), yes, T0);
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);
   });
+  it('merkt sich die schnellste richtige Antwort als Fastest Lap', () => {
+    let s = createClassic(settings, [tf('1'), tf('2'), tf('3'), tf('4')], ['Solo'], T0);
+    s = answerClassic(s, yes, T0 + 4_000);
+    expect(s.last?.fastestLap).toBe(true);
+    s = answerClassic(nextClassic(s, T0), no, T0 + 100);       // schneller, aber falsch
+    expect(s.last?.fastestLap).toBe(false);
+    s = answerClassic(nextClassic(s, T0), yes, T0 + 6_000);    // richtig, aber langsamer
+    expect(s.last?.fastestLap).toBe(false);
+    s = answerClassic(nextClassic(s, T0), yes, T0 + 1_500);
+    expect(s.last?.fastestLap).toBe(true);
+    expect(s.fastest).toEqual({ player: 0, timeMs: 1_500, index: 3 });
+  });
   it('ist ohne Fragen sofort fertig', () => {
     expect(createClassic(settings, [], ['Solo'], T0).phase).toBe('done');
   });
