@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Erzeugt aus data/sources/f1-circuits.geojson (MIT, bacinger/f1-circuits)
-// die Streckenumrisse (assets/tracks/*.svg) und die Bildfragen
-// data/questions/auto-umrisse.json. Aufruf: node scripts/build-tracks.mjs
+// die Streckenumrisse (public/assets/tracks/*.svg) und die Bildfragen
+// data/questions/generated/umrisse.json. Aufruf: node scripts/build-tracks.mjs
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,7 +31,7 @@ function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 10139
 const hash = (str) => [...str].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
 
 const W = 400, H = 300, PAD = 24;
-mkdirSync(join(root, 'assets/tracks'), { recursive: true });
+mkdirSync(join(root, 'public/assets/tracks'), { recursive: true });
 const feats = geo.features.filter((f) => NAMES[f.properties.id]);
 const questions = [];
 
@@ -48,7 +48,7 @@ for (const f of feats) {
   const P = xy.map(([x, y]) => [(ox + (x - minX) * sc).toFixed(1), (oy + (y - minY) * sc).toFixed(1)]);
   const d = 'M' + P.map((c) => c.join(' ')).join('L') + 'Z';
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><path d="${d}" fill="none" stroke="#f4f4f6" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${P[0][0]}" cy="${P[0][1]}" r="6" fill="#ff3b30"/></svg>\n`;
-  writeFileSync(join(root, 'assets/tracks', `${p.id}.svg`), svg);
+  writeFileSync(join(root, 'public/assets/tracks', `${p.id}.svg`), svg);
 
   const [name, difficulty] = NAMES[p.id];
   const rand = rng(hash(p.id));
@@ -59,12 +59,15 @@ for (const f of feats) {
     if (!distract.includes(c)) distract.push(c);
   }
   questions.push({
-    id: `umriss-${p.id}`, type: 'image', difficulty, year: Math.max(p.firstgp, 1950),
-    question: 'Welche Strecke ist das?', image: `assets/tracks/${p.id}.svg`,
+    id: `umriss-${p.id}`, type: 'image', category: 'umrisse', difficulty, year: Math.max(p.firstgp, 1950), tags: ['strecke'],
+    question: 'Welche Strecke ist das?',
+    image: { url: `assets/tracks/${p.id}.svg`, license: 'MIT', author: 'Tomislav Bacinger (Geodaten), Umriss selbst erzeugt', source: 'https://github.com/bacinger/f1-circuits' },
     options: [name, ...distract], answer: 0,
     explanation: `${p.Name} – ${(p.length / 1000).toFixed(3).replace('.', ',')} km lang, erster Grand Prix dort: ${p.firstgp}. Der rote Punkt markiert Start/Ziel.`,
+    source: 'https://github.com/bacinger/f1-circuits', generated: true, lastVerified: '2026-11-15',
   });
 }
-writeFileSync(join(root, 'data/questions/auto-umrisse.json'),
-  JSON.stringify({ category: 'umrisse', source: 'scripts/build-tracks.mjs', questions }, null, 1) + '\n');
+mkdirSync(join(root, 'data/questions/generated'), { recursive: true });
+writeFileSync(join(root, 'data/questions/generated/umrisse.json'),
+  '{"questions":[\n' + questions.map((q) => JSON.stringify(q)).join(',\n') + '\n]}\n');
 console.log(`${questions.length} Streckenumrisse erzeugt.`);
