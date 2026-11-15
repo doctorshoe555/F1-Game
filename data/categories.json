@@ -1,0 +1,19 @@
+[
+ {"id":"weltmeister","title":"Weltmeister","emoji":"🏆"},
+ {"id":"strecken","title":"Strecken der Welt","emoji":"🗺️"},
+ {"id":"umrisse","title":"Welche Strecke ist das?","emoji":"〰️"},
+ {"id":"funk","title":"Funksprüche","emoji":"📻"},
+ {"id":"pannen","title":"Pleiten, Pech & Pannen","emoji":"💥"},
+ {"id":"dts","title":"Drive to Survive","emoji":"🎬"},
+ {"id":"technik","title":"Technik für Dummies","emoji":"🔧"},
+ {"id":"box","title":"Rund um die Box","emoji":"🛞"},
+ {"id":"regeln","title":"Regeln, Flaggen & Strafen","emoji":"🚩"},
+ {"id":"kommandostand","title":"Vom Kommandostand","emoji":"🎧"},
+ {"id":"fremdgehen","title":"Fremdgegangen","emoji":"🏁"},
+ {"id":"popcorn","title":"Popcorn & Pixel","emoji":"🍿"},
+ {"id":"fit","title":"Fit wie ein Rennfahrer","emoji":"🥗"},
+ {"id":"rekorde","title":"Rekorde & Zahlen","emoji":"📈"},
+ {"id":"legenden","title":"Legenden","emoji":"👑"},
+ {"id":"jetset","title":"Jetset & Fahrerlager","emoji":"🥂"},
+ {"id":"saison","title":"Aktuelle Saison","emoji":"📅"}
+]
