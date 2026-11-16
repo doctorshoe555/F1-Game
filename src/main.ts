@@ -3,6 +3,9 @@ import '@fontsource/barlow-condensed/latin-700.css';
 import '@fontsource/titillium-web/latin-400.css';
 import '@fontsource/titillium-web/latin-600.css';
 import './styles/main.css';
+import { CATEGORIES, setExtraQuestions } from './core/questions';
+import { loadCustom } from './storage/custom';
+import { adminView } from './ui/admin';
 import { creditsView } from './ui/credits';
 import { h, type View } from './ui/dom';
 import { highscoresView } from './ui/highscores';
@@ -27,11 +30,15 @@ const routes: Record<string, (arg?: string) => View> = {
   historie: historyView,
   bestenliste: highscoresView,
   credits: creditsView,
+  admin: adminView,
   host: hostView,
   join: playerJoinView,
   jeopardy: jeopardySetupView,
   'jeopardy/spiel': jeopardyGameView,
 };
+
+// Eigene (importierte) Fragen stehen in allen Spielmodi zur Verfügung.
+setExtraQuestions(loadCustom(CATEGORIES.map((c) => c.id)));
 
 const soundBtn = h('button.tool', { type: 'button', onclick: () => { setSound(!soundOn()); drawSound(); } });
 function drawSound(): void {
@@ -45,7 +52,7 @@ const outlet = h('div.outlet');
 document.getElementById('app')!.append(
   h('header.topbar', h('a.brand', { href: '#/', 'aria-label': 'Boxenfunk – Startseite' }, 'Boxen', h('span', 'funk')), soundBtn),
   outlet,
-  h('footer.legal', h('span', 'Inoffizielles Fanprojekt – keine Verbindung zur Formel 1, zur FIA oder zu den Teams.'), ' ', h('a', { href: '#/credits' }, 'Credits & Lizenzen')));
+  h('footer.legal', h('span', 'Inoffizielles Fanprojekt – keine Verbindung zur Formel 1, zur FIA oder zu den Teams.'), ' ', h('a', { href: '#/credits' }, 'Credits & Lizenzen'), ' · ', h('a', { href: '#/admin' }, 'Fragen verwalten')));
 
 let current: View | null = null;
 function render(): void {

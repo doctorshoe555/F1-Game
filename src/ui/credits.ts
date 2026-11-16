@@ -20,7 +20,7 @@ export function creditsView(): View {
       h('h2', 'Schriften'),
       h('ul', h('li', 'Barlow Condensed – Jeremy Tribby, SIL Open Font License 1.1'), h('li', 'Titillium Web – Accademia di Belle Arti di Urbino, SIL Open Font License 1.1')),
       h('h2', 'Daten'),
-      h('ul', h('li', 'Streckengeometrie: ', link('https://github.com/bacinger/f1-circuits'), ' (MIT-Lizenz)'), h('li', 'Fragen und Erklärungen: handgeschrieben für dieses Projekt')),
+      h('ul', h('li', 'Streckengeometrie: ', link('https://github.com/bacinger/f1-circuits'), ' (MIT-Lizenz)'), h('li', 'Statistik-Fragen („Aus dem Archiv“, „Aktuelle Saison“, Siege und Poles): erzeugt aus der ', link('https://github.com/jolpica/jolpica-f1'), '-API, Daten unter CC BY-NC-SA 4.0 – nur nicht-kommerzielle Nutzung'), h('li', 'Fragen und Erklärungen: handgeschrieben für dieses Projekt')),
       h('h2', 'Icons & Grafiken'),
       h('p', 'Alle Icons, Flaggen und Streckenumrisse wurden für dieses Projekt selbst erstellt.')),
   };

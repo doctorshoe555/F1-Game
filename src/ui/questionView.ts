@@ -1,4 +1,5 @@
 // Darstellung einer Frage: Eingabe (je nach Typ) und Auflösung.
+import { reportUrl } from '../config';
 import { categoryById } from '../core/questions';
 import { fmtEstimate, solutionText } from '../core/scoring';
 import type { Outcome } from '../core/classic';
@@ -114,5 +115,6 @@ export function questionReveal(d: Dealt, o: Outcome): HTMLElement {
     })));
   }
   body.append(h('aside.explain', h('b', 'Boxenfunk: '), q.explanation));
+  body.append(h('p.report', h('a', { href: reportUrl(q, solutionText(d)), target: '_blank', rel: 'noopener' }, 'Frage falsch? Melden')));
   return body;
 }

@@ -87,13 +87,21 @@ export function deal(q: Question, rnd: () => number = Math.random): Dealt {
 }
 
 // ---- Laden: Vite bündelt alle Dateien aus curated/ und generated/ (review/ bewusst nicht) ----
-let cache: Question[] | null = null;
-export function loadQuestions(): Question[] {
-  if (!cache) {
+let bundled: Question[] | null = null;
+let extra: Question[] = [];
+/** Eigene (importierte) Fragen dazunehmen; ids, die es schon gibt, werden ignoriert. */
+export function setExtraQuestions(list: Question[]): void { extra = list; }
+export function bundledQuestions(): Question[] {
+  if (!bundled) {
     const files = import.meta.glob<{ questions: Question[] }>(['../../data/questions/curated/*.json', '../../data/questions/generated/*.json'], { eager: true, import: 'default' });
-    cache = Object.values(files).flatMap((f) => f.questions);
+    bundled = Object.values(files).flatMap((f) => f.questions);
   }
-  return cache;
+  return bundled;
+}
+export function loadQuestions(): Question[] {
+  if (!extra.length) return bundledQuestions();
+  const ids = new Set(bundledQuestions().map((q) => q.id));
+  return [...bundledQuestions(), ...extra.filter((q) => !ids.has(q.id))];
 }
 import categoriesJson from '../../data/categories.json';
 export const CATEGORIES: Category[] = categoriesJson;

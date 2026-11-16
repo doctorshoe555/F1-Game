@@ -357,6 +357,24 @@ kbd { display: inline-block; min-width: 1.5em; padding: 0 4px; font: 700 .85em v
 .buzz-btn.done { background: #0d2a1b; border-color: var(--good); color: var(--good); }
 .phone form > input[type=text] { width: 100%; font-size: 1.3rem; }
 
+.report { margin: 10px 0 0; font-size: .85rem; } .report a { color: var(--muted); }
+/* ---------- Admin ---------- */
+.adm-filters { display: grid; gap: 8px; grid-template-columns: 1fr; margin-bottom: 8px; }
+@media (min-width: 700px) { .adm-filters { grid-template-columns: 2fr 1fr 1fr 1fr; align-items: end; } }
+.adm-filters input[type=search] { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); padding: 10px 12px; min-height: 50px; min-width: 0; width: 100%; }
+.adm-filter { display: grid; gap: 2px; } .adm-filter span { font-size: .8rem; color: var(--muted); text-transform: uppercase; } .adm-filter select { width: 100%; }
+.adm-q { background: var(--panel); border: 1px solid var(--line); margin-bottom: 6px; padding: 0 12px; }
+.adm-q[open] { padding-bottom: 12px; border-color: #fff; }
+.adm-q summary { cursor: pointer; padding: 10px 0; display: grid; gap: 4px; list-style-position: outside; }
+.adm-text { font-weight: 600; overflow-wrap: anywhere; }
+.adm-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: .8rem; color: var(--muted); }
+.chip-own { color: var(--good); } .chip-bad { color: var(--bad); }
+.adm-meta { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: .85rem; margin: 8px 0; }
+.adm-meta dt { color: var(--muted); } .adm-meta dd { margin: 0; overflow-wrap: anywhere; }
+.adm-q .btn { font-size: 1rem; min-height: 42px; padding: 4px 16px; }
+.q-image.small { max-width: 260px; min-height: 0; } .q-image.small img { max-height: 160px; }
+div.form-error ul { margin: 4px 0; } div.form-error p { margin: 0; }
+
 /* Tabellen (Credits) */
 .scores { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .scores th { text-align: left; color: var(--muted); font-weight: 400; font-size: .8rem; text-transform: uppercase; }
