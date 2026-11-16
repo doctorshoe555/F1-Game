@@ -24,7 +24,7 @@ export function historyView(): View {
         h('p.hint', 'Siege zählen nur in Mehrspieler-Rennen. Bestwert = höchste Punktzahl in einem Spiel, Quote = Anteil richtiger Antworten, Schnellste = schnellste richtige Antwort.'),
         h('h2', 'Letzte Spiele'),
         h('ol.games', list.map((e) => h('li',
-          h('div.game-meta', levelTyre(e.level), h('span', `${new Date(e.date).toLocaleDateString('de-DE')} · ${e.mode === 'solo' ? 'Solo' : `${e.players.length} Fahrer`} · ${e.length} Fragen · ${levelById(e.level).title}`)),
+          h('div.game-meta', e.level ? levelTyre(e.level) : null, h('span', `${new Date(e.date).toLocaleDateString('de-DE')} · ${e.mode === 'solo' ? 'Solo' : `${e.players.length} Fahrer`} · ${e.mode === 'jeopardy' ? `Jeopardy, ${e.length} Felder` : `${e.length} Fragen · ${e.level ? levelById(e.level).title : ''}`}`)),
           h('div.game-result', e.players.map((p) => h('span', h('b', `${p.place}.`), ' ', h('i.swatch', { style: `background:${hex(p.color)}` }), ` ${p.name} `, h('span.num', fmt(p.score)))))))),
       ],
       h('p.hint', 'Die Historie wird nur auf diesem Gerät gespeichert (höchstens die letzten 100 Spiele).')),

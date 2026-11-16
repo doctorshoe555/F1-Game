@@ -4,7 +4,7 @@ import { PLAYER_COLORS } from '../core/colors';
 import { levelById } from '../core/questions';
 import type { Answer } from '../core/types';
 import { highscoresFor } from '../storage/highscores';
-import { exportSave, saveNamed } from '../storage/saves';
+import { exportState, saveNamed, type SaveState } from '../storage/saves';
 import { fmt, h, type View } from './dom';
 import { scoreTable } from './highscores';
 import { levelTyre, stopwatch } from './icons';
@@ -21,6 +21,20 @@ export function download(filename: string, text: string): void {
   const a = h('a', { href: url, download: filename });
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Aufklappbares Menü: benannt speichern, exportieren, pausieren. */
+export function saveMenu(state: () => SaveState, pauseHref = '#/'): HTMLElement {
+  const name = h('input', { type: 'text', maxLength: 40, placeholder: 'Name des Spielstands', 'aria-label': 'Name des Spielstands' });
+  const note = h('p.hint', { role: 'status' });
+  return h('details.game-menu', h('summary', 'Speichern & Pause'),
+    h('p.hint', 'Das Spiel wird nach jedem Schritt automatisch gesichert. Du kannst es jederzeit schließen und später fortsetzen.'),
+    h('form.inline', { onsubmit: (e: Event) => { e.preventDefault(); const s = saveNamed(name.value, state()); note.textContent = `Gespeichert als „${s.name}“.`; name.value = ''; } },
+      name, h('button.btn', { type: 'submit' }, 'Speichern unter')),
+    note,
+    h('div.actions',
+      h('button.btn', { type: 'button', onclick: () => download(`boxenfunk-spielstand-${new Date().toISOString().slice(0, 10)}.json`, exportState(state())) }, 'Als Datei exportieren'),
+      h('a.btn', { href: pauseHref }, 'Pause – zur Startseite')));
 }
 
 /** Rangliste eines laufenden oder beendeten Spiels als Timing Tower. */
@@ -56,19 +70,7 @@ export function classicGameView(): View {
     update(next);
   };
 
-  /** Aufklappbares Menü: benannt speichern, exportieren, pausieren. */
-  function menu(): HTMLElement {
-    const name = h('input', { type: 'text', maxLength: 40, placeholder: 'Name des Spielstands', 'aria-label': 'Name des Spielstands' });
-    const note = h('p.hint', { role: 'status' });
-    return h('details.game-menu', h('summary', 'Speichern & Pause'),
-      h('p.hint', 'Das Spiel wird nach jedem Schritt automatisch gesichert. Du kannst es jederzeit schließen und später fortsetzen.'),
-      h('form.inline', { onsubmit: (e: Event) => { e.preventDefault(); const s = saveNamed(name.value, ses!.state); note.textContent = `Gespeichert als „${s.name}“.`; name.value = ''; } },
-        name, h('button.btn', { type: 'submit' }, 'Speichern unter')),
-      note,
-      h('div.actions',
-        h('button.btn', { type: 'button', onclick: () => download(`boxenfunk-spielstand-${new Date().toISOString().slice(0, 10)}.json`, exportSave({ id: ses!.id, name: 'Exportierter Spielstand', auto: false, kind: 'classic', updatedAt: new Date().toISOString(), summary: '', state: ses!.state })) }, 'Als Datei exportieren'),
-        h('a.btn', { href: '#/' }, 'Pause – zur Startseite')));
-  }
+  const menu = (): HTMLElement => saveMenu(() => ses.state);
 
   function draw(): void {
     cancelAnimationFrame(raf);

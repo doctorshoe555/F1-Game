@@ -12,6 +12,7 @@ import { classicGameView } from './ui/classicGame';
 import { partySetupView, soloSetupView } from './ui/classicSetup';
 import { historyView } from './ui/history';
 import { hostView } from './ui/host';
+import { jeopardyGameView, jeopardySetupView } from './ui/jeopardyLocal';
 import { playerJoinView } from './ui/player';
 import { savesView } from './ui/saves';
 import { setSound, soundOn } from './ui/sound';
@@ -28,6 +29,8 @@ const routes: Record<string, (arg?: string) => View> = {
   credits: creditsView,
   host: hostView,
   join: playerJoinView,
+  jeopardy: jeopardySetupView,
+  'jeopardy/spiel': jeopardyGameView,
 };
 
 const soundBtn = h('button.tool', { type: 'button', onclick: () => { setSound(!soundOn()); drawSound(); } });
@@ -52,7 +55,7 @@ function render(): void {
   const notFound = (): View => ({ el: h('main.page', h('h1', 'Falsch abgebogen'), h('p', 'Diese Seite gibt es nicht.'), h('a.btn', { href: '#/' }, 'Zur Startseite')) });
   current = routes[path] ? routes[path]() : routes[first] && (first === 'join') ? routes[first](arg) : notFound();
   outlet.replaceChildren(current.el);
-  document.body.classList.toggle('in-game', path === 'spiel' || first === 'join' || first === 'host');
+  document.body.classList.toggle('in-game', path === 'spiel' || path === 'jeopardy/spiel' || first === 'join' || first === 'host');
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', render);

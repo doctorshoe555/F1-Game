@@ -81,16 +81,40 @@ export function soloSetupView(): View {
   return { el };
 }
 
+export interface Roster { name: string; color: string }
+
+/** Liste der Fahrer (2–8) mit Name und Farbe – für Pass-and-Play und Jeopardy an einem Gerät. */
+export function rosterEditor(roster: Roster[], draw: () => void): HTMLElement {
+  const freeColor = (): string => (PLAYER_COLORS.find((c) => !roster.some((r) => r.color === c.id)) ?? PLAYER_COLORS[0]).id;
+  return h('fieldset.field', h('legend', `Startaufstellung (${roster.length} von ${MAX_PLAYERS})`),
+    h('ol.roster', roster.map((r, i) => {
+      const col = PLAYER_COLORS.find((c) => c.id === r.color) ?? PLAYER_COLORS[0];
+      const name = h('input', { type: 'text', maxLength: 16, value: r.name, placeholder: `Fahrer ${i + 1}`, 'aria-label': `Name von Fahrer ${i + 1}`, oninput: () => { r.name = name.value; } });
+      return h('li', h('i.swatch', { style: `background:${col.hex}` }), name,
+        h('select', { 'aria-label': `Farbe von Fahrer ${i + 1}`, onchange: (e: Event) => { r.color = (e.target as HTMLSelectElement).value; draw(); } },
+          PLAYER_COLORS.map((c) => h('option', { value: c.id, selected: c.id === r.color }, c.name))),
+        h('button.icon', { type: 'button', disabled: roster.length <= 2, 'aria-label': `Fahrer ${i + 1} entfernen`, onclick: () => { roster.splice(i, 1); draw(); } }, '✕'));
+    })),
+    h('button.btn', { type: 'button', disabled: roster.length >= MAX_PLAYERS, onclick: () => { roster.push({ name: '', color: freeColor() }); draw(); } }, '+ Fahrer hinzufügen'));
+}
+/** Gespeicherte Aufstellung lesen (mindestens zwei gültige Einträge, sonst Standard). */
+export function loadRoster(stored: unknown): Roster[] {
+  const valid = (r: unknown): r is Roster => !!r && typeof (r as Roster).name === 'string' && PLAYER_COLORS.some((c) => c.id === (r as Roster).color);
+  const list = Array.isArray(stored) ? stored.filter(valid) : [];
+  return list.length >= 2 ? list.slice(0, MAX_PLAYERS) : [{ name: '', color: PLAYER_COLORS[0].id }, { name: '', color: PLAYER_COLORS[1].id }];
+}
+/** Namen bereinigen; liefert null bei doppelten Namen. */
+export function finalRoster(roster: Roster[]): Roster[] | null {
+  const players = roster.map((r, i) => ({ name: r.name.trim() || `Fahrer ${i + 1}`, color: r.color }));
+  return new Set(players.map((p) => p.name.toLowerCase())).size === players.length ? players : null;
+}
+
 // ---------- Pass-and-Play ----------
-interface Roster { name: string; color: string }
 export function partySetupView(): View {
-  const stored = load<{ filters?: Partial<Filters>; perPlayer?: number; roster?: Roster[] }>('party.settings', {});
+  const stored = load<{ filters?: Partial<Filters>; perPlayer?: number; roster?: unknown }>('party.settings', {});
   const s: Filters = { ...FILTER_DEFAULTS, ...stored.filters };
   let perPlayer = stored.perPlayer ?? 5;
-  const valid = (r: unknown): r is Roster => !!r && typeof (r as Roster).name === 'string' && PLAYER_COLORS.some((c) => c.id === (r as Roster).color);
-  const roster: Roster[] = Array.isArray(stored.roster) && stored.roster.filter(valid).length >= 2
-    ? stored.roster.filter(valid).slice(0, MAX_PLAYERS) : [{ name: '', color: PLAYER_COLORS[0].id }, { name: '', color: PLAYER_COLORS[1].id }];
-  const freeColor = (): string => (PLAYER_COLORS.find((c) => !roster.some((r) => r.color === c.id)) ?? PLAYER_COLORS[0]).id;
+  const roster = loadRoster(stored.roster);
   const el = h('main.page');
   let error = '';
 
@@ -102,25 +126,15 @@ export function partySetupView(): View {
     el.replaceChildren(
       h('a.back', { href: '#/' }, '← Startseite'), h('h1', 'Ein Gerät, viele Fahrer'),
       h('p.lead', 'Reihum beantwortet jeder seine eigene Frage. Nach jeder Frage wird das Gerät weitergegeben.'),
-      h('fieldset.field', h('legend', `Startaufstellung (${roster.length} von ${MAX_PLAYERS})`),
-        h('ol.roster', roster.map((r, i) => {
-          const col = PLAYER_COLORS.find((c) => c.id === r.color)!;
-          const name = h('input', { type: 'text', maxLength: 16, value: r.name, placeholder: `Fahrer ${i + 1}`, 'aria-label': `Name von Fahrer ${i + 1}`, oninput: () => { r.name = name.value; } });
-          return h('li', h('i.swatch', { style: `background:${col.hex}` }), name,
-            h('select', { 'aria-label': `Farbe von Fahrer ${i + 1}`, onchange: (e: Event) => { r.color = (e.target as HTMLSelectElement).value; draw(); } },
-              PLAYER_COLORS.map((c) => h('option', { value: c.id, selected: c.id === r.color }, c.name))),
-            h('button.icon', { type: 'button', disabled: roster.length <= 2, 'aria-label': `Fahrer ${i + 1} entfernen`, onclick: () => { roster.splice(i, 1); draw(); } }, '✕'));
-        })),
-        h('button.btn', { type: 'button', disabled: roster.length >= MAX_PLAYERS, onclick: () => { roster.push({ name: '', color: freeColor() }); draw(); } }, '+ Fahrer hinzufügen')),
+      rosterEditor(roster, draw),
       radios('per', 'Fragen pro Fahrer', [3, 5, 8, 10].map((v) => ({ value: v, title: String(v) })), perPlayer, (v) => { perPlayer = v; draw(); }),
       ...filterFields(s, draw), poolNote(pool, wanted),
       h('p.form-error', { role: 'alert' }, error),
       h('button.btn.primary.big', {
         type: 'button', disabled: total === 0,
         onclick: () => {
-          const players = roster.map((r, i) => ({ name: r.name.trim() || `Fahrer ${i + 1}`, color: r.color }));
-          const names = players.map((p) => p.name.toLowerCase());
-          if (new Set(names).size !== names.length) { error = 'Zwei Fahrer haben denselben Namen – bitte ändern, sonst gerät die Statistik durcheinander.'; draw(); return; }
+          const players = finalRoster(roster);
+          if (!players) { error = 'Zwei Fahrer haben denselben Namen – bitte ändern, sonst gerät die Statistik durcheinander.'; draw(); return; }
           save('party.settings', { filters: s, perPlayer, roster });
           launch(s, total, players);
         },

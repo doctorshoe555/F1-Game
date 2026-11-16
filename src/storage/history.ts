@@ -1,5 +1,6 @@
 // Spielhistorie und Statistik je Spielername.
 import { ranking, type ClassicState } from '../core/classic';
+import type { JeopardyState } from '../core/jeopardy';
 import type { RaceState } from '../core/race';
 import { rankPlayers } from '../core/roster';
 import type { LevelId } from '../core/types';
@@ -10,8 +11,8 @@ export interface HistoryPlayer { name: string; color: string; score: number; cor
 export interface HistoryEntry {
   id: string;
   date: string;
-  mode: 'solo' | 'party';
-  level: LevelId;
+  mode: 'solo' | 'party' | 'jeopardy';
+  level?: LevelId;
   length: number;
   players: HistoryPlayer[];
   fastestLap: { name: string; timeMs: number } | null;
@@ -53,6 +54,20 @@ export function recordRace(id: string, s: RaceState, date = new Date().toISOStri
     id, date, mode: 'party', level: s.settings.level, length: s.deck.length,
     players: rankPlayers(s.players).map((r) => ({ name: r.player.name, color: r.player.color, score: r.player.score, correct: r.player.correct, answered: s.deck.length, place: r.place })),
     fastestLap: best ? { name: best.name, timeMs: s.best!.timeMs } : null,
+  };
+  save(KEY, [entry, ...list].slice(0, MAX));
+  return true;
+}
+
+/** Trägt ein beendetes Jeopardy-Spiel genau einmal ein. */
+export function recordJeopardy(id: string, s: JeopardyState, date = new Date().toISOString()): boolean {
+  const list = listHistory();
+  if (s.phase !== 'done' || !s.players.length || list.some((e) => e.id === id)) return false;
+  const fields = s.settings.rounds * s.settings.categories * 5;
+  const entry: HistoryEntry = {
+    id, date, mode: 'jeopardy', length: fields,
+    players: rankPlayers(s.players).map((r) => ({ name: r.player.name, color: r.player.color, score: r.player.score, correct: r.player.correct, answered: 0, place: r.place })),
+    fastestLap: null,
   };
   save(KEY, [entry, ...list].slice(0, MAX));
   return true;

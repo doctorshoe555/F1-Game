@@ -3,8 +3,8 @@
 Ein F1-Quiz mit Augenzwinkern, als rein statische Web-App für GitHub Pages.
 Inoffizielles Fanprojekt – keine Verbindung zur Formel 1, zur FIA oder zu den Teams.
 
-> **Stand: Etappe (d)** – Solo, Pass-and-Play und „Party per Handy“ (Host mit QR-Code, Mitspielen im
-> Browser). Jeopardy und der Fragen-Generator folgen.
+> **Stand: Etappe (e)** – Solo, Pass-and-Play, „Party per Handy“ und Grand Prix Jeopardy.
+> Der Fragen-Generator samt Admin-Seite, PWA und Deploy folgt in Etappe (f).
 
 ## Starten
 
@@ -45,6 +45,31 @@ Host neu, bleiben Raum-Code und Spielstand erhalten; die Handys finden von selbs
 **Ausprobieren ohne Netz:** Mit `?net=local` (z. B. `http://localhost:5173/?net=local#/host`) laufen
 Host und Mitspieler in mehreren Tabs desselben Browsers, ganz ohne Vermittlungsdienst.
 
+## Grand Prix Jeopardy
+
+Zwei Wege: an **einem Gerät** (Startseite → „Grand Prix Jeopardy“, gebuzzert wird per Schaltfläche oder mit
+den Tasten 1–8) oder **per Handy** (Startseite → „Party per Handy“, in der Lobby die Spielart „Grand Prix
+Jeopardy“ wählen – dann ist jedes Handy ein Buzzer).
+
+- **Board:** 5 oder 6 Kategorien × 5 Felder (100–500), zufällig aus dem Fragenpool gezogen; in Runde 2 mit
+  neuen Kategorien und doppelten Werten. Je höher der Wert, desto schwerer die Frage.
+- **Ablauf:** Wer zuletzt richtig lag, wählt das Feld. Nach einer kurzen Lesezeit sind die Buzzer frei; wer
+  zu früh drückt, ist kurz gesperrt. Falsch = Punktabzug, danach dürfen die anderen noch einmal buzzern.
+- **Safety Car:** In Runde 1 ist ein Feld versteckt, in Runde 2 sind es zwei. Wer es erwischt, spielt allein
+  und bestimmt den Einsatz selbst (5 bis zum eigenen Punktestand, mindestens bis zum höchsten Feldwert).
+- **Schätzfragen** spielen alle: Die beste Schätzung bekommt den Feldwert, Abzug gibt es keinen.
+- **Finale Runde:** Alle kennen nur die Kategorie und setzen geheim (bis zum eigenen Punktestand, mindestens
+  bis 500). Danach kommt die Frage.
+- **Antworten:** „Auswahl“ (antippen), „Freitext“ (eintippen; Tippfehler, fehlende Vornamen und die
+  Frageform werden verziehen – bei langen Lösungen gibt es stattdessen die Auswahl) oder „Spielleiter“
+  (laut antworten, der Host wertet per Klick bzw. mit den Tasten R und F).
+- **Gag-Schalter:** „Antwort als Frage formulieren“ – die Auflösung erscheint als „Wer oder was ist …?“.
+  Wer es vergisst, bekommt nur einen augenzwinkernden Hinweis.
+- **Korrektur:** In der Auflösung kann der Host jede Wertung mit „doch richtig“ / „doch falsch“ umdrehen.
+
+**Buzzer-Fairness per Handy:** Der Host wertet nicht den ersten eintreffenden Treffer, sondern sammelt
+250 Millisekunden lang und nimmt dann den frühesten Zeitstempel – mit dem unten beschriebenen Ausgleich.
+
 ### Warum PeerJS (WebRTC) und nicht Firebase oder Supabase?
 
 GitHub Pages hat keinen Server, also müssen die Geräte direkt miteinander reden oder einen fremden Dienst nutzen.
@@ -75,6 +100,8 @@ Näherung, keine Garantie.
 - Unter „Speichern & Pause“ im Spiel lassen sich benannte Stände anlegen und als JSON-Datei exportieren;
   die Seite „Spielstände“ importiert solche Dateien wieder – etwa auf einem anderen Gerät.
 - Erlaubt der Browser kein Speichern, läuft alles im Arbeitsspeicher weiter; die App weist darauf hin.
+- Jeopardy-Spiele (Board, Einsätze, Punkte) werden genauso gesichert. Ein per Handy gespielter Stand lässt
+  sich fortsetzen: Der Host eröffnet dafür einen neuen Raum, die Fahrer steigen mit ihrem Namen wieder ein.
 - Bestenliste, Historie und Spielstände liegen nur auf dem jeweiligen Gerät.
 
 ## Fragen ergänzen

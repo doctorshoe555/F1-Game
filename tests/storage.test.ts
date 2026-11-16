@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { answerClassic, createClassic, nextClassic, readyClassic, type ClassicSettings, type ClassicState } from '../src/core/classic';
 import type { Question } from '../src/core/types';
 import { highscoresFor } from '../src/storage/highscores';
+import { createJeopardy, DEFAULT_JEOPARDY, HOST, actJeopardy, startJeopardy } from '../src/core/jeopardy';
+import { loadQuestions } from '../src/core/questions';
 import { createRace, nextQuestion, resolveQuestion, startRace, submitAnswer } from '../src/core/race';
 import { joinRoster } from '../src/core/roster';
-import { listHistory, playerStats, recordClassic, recordRace } from '../src/storage/history';
+import { listHistory, playerStats, recordClassic, recordJeopardy, recordRace } from '../src/storage/history';
 import { autosave, deleteSave, exportSave, getSave, importSave, latestAutosave, listSaves, saveNamed } from '../src/storage/saves';
 import { clearMemory, load, save, storageAvailable } from '../src/storage/store';
 
@@ -87,6 +89,36 @@ describe('Spielstände', () => {
     expect(listSaves().map((e) => e.name)).toEqual(['gut']);
     save('saves', 'gar keine Liste');
     expect(listSaves()).toEqual([]);
+  });
+});
+
+describe('Jeopardy-Spielstände', () => {
+  const game = () => {
+    const lobby = { ...createJeopardy(true), players: ['Ada', 'Ben'].map((name, i) => ({ id: `p${i + 1}`, name, color: 'rosso', avatar: '', score: 0, correct: 0, streak: 0, connected: true })) };
+    return startJeopardy(lobby, DEFAULT_JEOPARDY, loadQuestions(), T0);
+  };
+  it('sichert Board, laufendes Feld und Punkte und übersteht Export und Import', () => {
+    let s = game();
+    s = actJeopardy(s, HOST, { k: 'pick', ci: 0, ri: 0 }, T0);
+    autosave('j1', s, at(1));
+    expect(latestAutosave()).toMatchObject({ kind: 'jeopardy', id: 'j1' });
+    expect(latestAutosave()!.summary).toMatch(/^Jeopardy · Ada 0, Ben 0 · Runde 1, 30 Felder offen$/);
+    const file = exportSave(saveNamed('Jeopardy-Abend', s, at(2)));
+    clearMemory();
+    const back = importSave(file, at(3));
+    expect(back).toMatchObject({ kind: 'jeopardy', name: 'Jeopardy-Abend' });
+    expect(back.state).toEqual(s);
+  });
+  it('sichert keine Lobby, weist vertauschte Arten zurück und trägt das Ende in die Historie ein', () => {
+    autosave('j0', createJeopardy(true), at(1));
+    expect(listSaves()).toEqual([]);
+    const file = JSON.parse(exportSave(saveNamed('x', game())));
+    expect(() => importSave(JSON.stringify({ ...file, kind: 'classic' }))).toThrow(/beschädigt/);
+    const done = { ...game(), phase: 'done' as const, players: game().players.map((p, i) => ({ ...p, score: [300, -100][i] })) };
+    expect(recordJeopardy('j1', game())).toBe(false);
+    expect(recordJeopardy('j1', done)).toBe(true);
+    expect(recordJeopardy('j1', done)).toBe(false);
+    expect(listHistory()[0]).toMatchObject({ mode: 'jeopardy', length: 60, players: [{ name: 'Ada', place: 1, score: 300 }, { name: 'Ben', place: 2 }] });
   });
 });
 

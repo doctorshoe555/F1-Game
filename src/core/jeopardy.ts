@@ -263,7 +263,7 @@ function applyFinal(s: JeopardyState): JeopardyState {
   let players = s.players;
   for (const p of s.players) {
     const stake = f.wagers[p.id] ?? 0;
-    deltas[p.id] = f.verdicts[p.id] ? stake : -stake;
+    deltas[p.id] = f.verdicts[p.id] ? stake : stake ? -stake : 0;
     players = addScore({ ...s, players }, p.id, deltas[p.id], !!f.verdicts[p.id]);
   }
   return { ...s, players, phase: 'finalReveal', fin: { ...f, deltas } };

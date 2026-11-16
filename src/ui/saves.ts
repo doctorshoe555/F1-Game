@@ -3,7 +3,7 @@ import { deleteSave, exportSave, importSave, listSaves, type SaveEntry } from '.
 import { storageAvailable } from '../storage/store';
 import { download } from './classicGame';
 import { h, type View } from './dom';
-import { loadSession } from './session';
+import { resumeEntry } from './resume';
 
 const when = (iso: string): string => new Date(iso).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
 const slug = (s: string): string => s.toLowerCase().replace(/[^a-z0-9äöüß]+/g, '-').replace(/^-|-$/g, '') || 'spielstand';
@@ -19,7 +19,7 @@ export function savesView(): View {
       ? h('div.actions', h('span', 'Wirklich löschen?'), h('button.btn.primary', { type: 'button', onclick: () => { deleteSave(e.id); confirmId = null; note = { text: `„${e.name}“ gelöscht.`, bad: false }; draw(); } }, 'Ja, löschen'),
         h('button.btn', { type: 'button', onclick: () => { confirmId = null; draw(); } }, 'Abbrechen'))
       : h('div.actions',
-        h('button.btn.primary', { type: 'button', onclick: () => { loadSession(e); location.hash = '#/spiel'; } }, 'Fortsetzen'),
+        h('button.btn.primary', { type: 'button', onclick: () => resumeEntry(e) }, 'Fortsetzen'),
         h('button.btn', { type: 'button', onclick: () => download(`boxenfunk-${slug(e.name)}.json`, exportSave(e)) }, 'Exportieren'),
         h('button.btn', { type: 'button', onclick: () => { confirmId = e.id; draw(); } }, 'Löschen')));
 

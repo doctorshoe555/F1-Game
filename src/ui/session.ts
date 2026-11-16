@@ -1,7 +1,7 @@
 // Das gerade laufende Spiel: hält den Zustand, sichert automatisch und trägt beendete Spiele in die Historie ein.
 import { resumeClassic, type ClassicState } from '../core/classic';
 import { recordClassic } from '../storage/history';
-import { autosave, latestAutosave, newId, type SaveEntry } from '../storage/saves';
+import { autosave, listSaves, newId, type SaveEntry } from '../storage/saves';
 
 export interface Session { id: string; state: ClassicState; lights: boolean; rank: number | null }
 let cur: Session | null = null;
@@ -15,13 +15,14 @@ export function startSession(state: ClassicState): void {
 
 /** Spielstand laden. Automatische Sicherungen laufen unter ihrer id weiter, benannte Stände als neues Spiel. */
 export function loadSession(entry: SaveEntry): void {
+  if (entry.kind !== 'classic' || 'kind' in entry.state) return;
   cur = { id: entry.auto ? entry.id : newId(), state: resumeClassic(entry.state, Date.now()), lights: false, rank: null };
   autosave(cur.id, cur.state);
 }
 
 /** Nach einem Neuladen der Seite: letzte automatische Sicherung wieder aufnehmen. */
 export function restoreSession(): Session | null {
-  if (!cur) { const auto = latestAutosave(); if (auto) loadSession(auto); }
+  if (!cur) { const auto = listSaves().find((e) => e.auto && e.kind === 'classic'); if (auto) loadSession(auto); }
   return cur;
 }
 

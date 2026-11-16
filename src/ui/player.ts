@@ -1,5 +1,6 @@
 // Handy-Ansicht: beitreten, antworten, Ergebnis sehen. Zeigt nur, was der Host schickt.
 import { PLAYER_COLORS } from '../core/colors';
+import type { JAction, JScreen, JView } from '../core/jeopardy';
 import type { PlayerView, PublicQuestion, Screen } from '../core/race';
 import type { Answer, Dealt, Question } from '../core/types';
 import { estimateOffset, type PingSample } from '../net/clock';
@@ -8,7 +9,7 @@ import { createClient, netKind, type ClientStatus, type ClientTransport } from '
 import * as store from '../storage/store';
 import { fmt, h, type View } from './dom';
 import { stopwatch } from './icons';
-import { questionHead, questionInput } from './questionView';
+import { parseNumber, questionHead, questionInput } from './questionView';
 import { sfx, vibrate } from './sound';
 import { keepAwake, timerBar } from './timer';
 
@@ -48,7 +49,8 @@ export function playerJoinView(arg?: string): View {
   const el = h('main.page.phone');
   let transport: ClientTransport | null = null;
   let net: ClientStatus | null = null;
-  let view: PlayerView | null = null;
+  let view: PlayerView | JView | null = null;
+  type AnyScreen = Screen | JScreen;
   let error = '';
   let lastScreen = '';
   let sentFor = -1;                 // Index der Frage, für die schon geantwortet wurde (sofortige Rückmeldung)
@@ -60,6 +62,8 @@ export function playerJoinView(arg?: string): View {
   const hostNow = (): number => Date.now() + offset;
   const tokenKey = (): string => `join.token.${code}`;
   const send = (m: ClientMsg): void => transport?.send(m);
+  const actJ = (a: JAction): void => { send({ t: 'act', a }); lastScreen = ''; };
+  let sentKey = '';                 // verhindert, dass eine schon abgeschickte Jeopardy-Eingabe noch einmal angeboten wird
 
   function leave(clearToken: boolean): void {
     send({ t: 'bye' });
@@ -119,7 +123,103 @@ export function playerJoinView(arg?: string): View {
   }
 
   // ---------- Spiel ----------
-  function body(s: Screen): HTMLElement[] {
+  // ---------- Jeopardy ----------
+  function wagerForm(min: number, max: number, onSet: (amount: number) => void): HTMLElement {
+    const input = h('input.num', { type: 'text', inputMode: 'numeric', autocomplete: 'off', placeholder: `${min}–${max}`, 'aria-label': `Einsatz von ${min} bis ${max}` });
+    const err = h('p.form-error', { role: 'alert' });
+    const go = (v: number): void => { if (!Number.isFinite(v) || v < min || v > max) { err.textContent = `Bitte ${min} bis ${max} eingeben.`; return; } onSet(Math.round(v)); };
+    return h('form.wager', { onsubmit: (e: Event) => { e.preventDefault(); go(parseNumber(input.value)); } },
+      h('div.estimate-row', input, h('span.unit', 'Punkte')), err, h('button.btn.primary.big', { type: 'submit' }, 'Einsatz setzen'),
+      h('div.actions', h('button.btn', { type: 'button', onclick: () => go(min) }, `Minimum (${min})`), h('button.btn', { type: 'button', onclick: () => go(max) }, `Alles (${fmt(max)})`)));
+  }
+  function textForm(asQuestion: boolean, onText: (text: string) => void): HTMLElement {
+    const input = h('input', { type: 'text', autocomplete: 'off', maxLength: 80, placeholder: asQuestion ? 'Wer oder was ist …?' : 'Antwort eintippen', 'aria-label': 'Antwort' });
+    return h('form', { onsubmit: (e: Event) => { e.preventDefault(); if (input.value.trim()) onText(input.value); } }, input, h('button.btn.primary.big', { type: 'submit' }, 'Antworten'));
+  }
+  const waitBox = (emoji: string, title: string, text: string): HTMLElement => h('section.wait', h('p.big-emoji', emoji), h('h1', title), h('p.lead', text));
+  /** Eingabe nur einmal anbieten: Nach dem Abschicken sofort Wartebildschirm zeigen, bis der Host bestätigt. */
+  const once = (k: string, input: () => HTMLElement[], waiting: HTMLElement): HTMLElement[] => (sentKey === k ? [waiting] : input());
+  const sent = (k: string, a: JAction): void => { sentKey = k; vibrate(30); actJ(a); draw(); };
+
+  function jbody(s: JScreen): HTMLElement[] | null {
+    switch (s.k) {
+      case 'jboard':
+        if (!s.you) return [waitBox('🗺️', `${s.chooser} wählt`, `Runde ${s.round} – gleich wird gebuzzert.`)];
+        return [h('p.kicker', `Runde ${s.round} – du wählst`), h('div.jboard.mini', { style: `--cols:${s.cats.length}` }, s.cats.map((cat, ci) => h('div.jcol',
+          h('div.jcat', { title: cat.title }, h('span', { 'aria-hidden': 'true' }, cat.emoji), h('b', cat.title)),
+          cat.cells.map((x, ri) => (x.used ? h('div.jcell.used') : h('button.jcell', { type: 'button', 'aria-label': `${cat.title} für ${x.value}`, onclick: () => { vibrate(30); actJ({ k: 'pick', ci, ri }); } }, String(x.value)))))))];
+      case 'jwager':
+        if (!s.you) return [waitBox('🚨', 'Safety Car!', `${s.who} spielt allein und setzt gerade.`)];
+        return once(`w${s.category}${s.max}`, () => [h('section.safety', h('h1', 'Safety Car!'), h('p.lead', `Kategorie „${s.category}“. Du spielst allein – wie viel riskierst du?`)),
+          wagerForm(s.min, s.max, (amount) => sent(`w${s.category}${s.max}`, { k: 'wager', amount }))], waitBox('🚨', 'Einsatz gesetzt', 'Gleich kommt deine Frage.'));
+      case 'jbuzz': {
+        if (s.locked) return [waitBox('🔒', 'Du bist raus', 'Für dieses Feld darfst du nicht mehr buzzern.')];
+        const btn = h('button.buzz-btn', { type: 'button' }, 'Warten …');
+        let raf = 0;
+        const upd = (): void => {
+          const now = hostNow();
+          const blocked = s.blockedUntil > now;
+          const open = now >= s.openAt && !blocked;
+          btn.className = `buzz-btn${s.buzzed ? ' done' : open ? ' open' : blocked ? ' blocked' : ''}`;
+          btn.textContent = s.buzzed ? 'Gebuzzert!' : blocked ? 'Zu früh! Gesperrt …' : open ? 'BUZZ!' : 'Warten …';
+          if (!s.buzzed && btn.isConnected !== false) raf = requestAnimationFrame(upd);
+        };
+        btn.addEventListener('pointerdown', (e) => { e.preventDefault(); if (s.buzzed) return; vibrate(80); sfx('light'); send({ t: 'act', a: { k: 'buzz', at: hostNow() } }); });
+        btn.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !s.buzzed) send({ t: 'act', a: { k: 'buzz', at: hostNow() } }); });
+        setTimeout(upd, 0);
+        timer = { el: btn, stop: () => cancelAnimationFrame(raf) };
+        return [h('p.kicker', `${s.category} · ${s.value}`), h('p.buzz-q', s.question), btn, h('p.hint', 'Erst lesen, dann drücken: Wer zu früh buzzert, ist kurz gesperrt.')];
+      }
+      case 'janswer':
+        if (!s.you) return [waitBox('🎤', `${s.who} ist dran`, s.question)];
+        if (s.input === 'voice' || !s.q) return [waitBox('🎤', 'Du bist dran!', `Sag die Antwort laut${s.asQuestion ? ' – am besten als Frage: „Wer oder was ist …?“' : ''}. Der Spielleiter wertet.`)];
+        return once(`a${s.q.id}`, () => {
+          if (s.deadline) timer = timerBar(s.deadline, s.totalMs, hostNow);
+          const d = asDealt(s.q!);
+          const parts: HTMLElement[] = [h('p.kicker', 'Du bist dran!'), timer?.el ?? h('div')];
+          if (s.input === 'text') return [...parts, h('h2.q-text', s.question), textForm(s.asQuestion, (text) => sent(`a${s.q!.id}`, { k: 'answer', a: { kind: 'text', text } }))];
+          return [...parts, questionInput(d, (a: Answer) => sent(`a${s.q!.id}`, { k: 'answer', a })).el];
+        }, waitBox('📻', 'Antwort ist drin', 'Mal sehen …'));
+      case 'jallplay':
+        if (s.answered) return [waitBox('📻', 'Schätzung ist drin', 'Warten auf die anderen …')];
+        return once(`e${s.q.id}`, () => {
+          if (s.deadline) timer = timerBar(s.deadline, s.totalMs, hostNow);
+          return [h('p.kicker', `Schätzfrage für alle · ${s.value}`), timer?.el ?? h('div'),
+            questionInput(asDealt(s.q), (a: Answer) => { if (a?.kind === 'number') sent(`e${s.q.id}`, { k: 'estimate', value: a.value }); }).el];
+        }, waitBox('📻', 'Schätzung ist drin', 'Warten auf die anderen …'));
+      case 'jreveal':
+        return [s.delta === null ? h('div.verdict.part', h('strong', 'Auflösung'), h('span', 'du warst nicht dran')) : h(`div.verdict.${s.delta > 0 ? 'good' : s.delta < 0 ? 'bad' : 'part'}`, { role: 'status' }, h('strong', s.delta > 0 ? '✓ Punkte!' : s.delta < 0 ? '✗ Abzug' : '± 0'), h('span', `${s.delta > 0 ? '+' : ''}${fmt(s.delta)} Punkte`)),
+          h('div.solution', h('span', 'Richtig ist'), h('strong', s.solution)), h('ul.pills', s.lines.map((l) => h('li', l))), h('aside.explain', h('b', 'Boxenfunk: '), s.explanation)];
+      case 'jround': return [waitBox('🛞', 'Boxenstopp', `Runde ${s.round} ist durch. Gleich geht es mit doppelten Werten weiter.`)];
+      case 'jfwager':
+        if (s.done) return [waitBox('🤫', 'Einsatz gesetzt', 'Geheim, versteht sich. Warten auf die anderen …')];
+        return once('fw', () => {
+          if (s.deadline) timer = timerBar(s.deadline, s.totalMs, hostNow);
+          return [h('p.kicker', 'Finale Runde'), h('h1', s.category), h('p.lead', 'Du kennst nur die Kategorie. Wie viel setzt du – geheim?'), timer?.el ?? h('div'), wagerForm(0, s.max, (amount) => sent('fw', { k: 'finalWager', amount }))];
+        }, waitBox('🤫', 'Einsatz gesetzt', 'Warten auf die anderen …'));
+      case 'jfanswer':
+        if (s.done) return [waitBox('📻', 'Antwort ist drin', 'Warten auf die anderen …')];
+        return once('fa', () => {
+          if (s.deadline) timer = timerBar(s.deadline, s.totalMs, hostNow);
+          const d = asDealt(s.q);
+          const parts: HTMLElement[] = [h('p.kicker', 'Finale Runde'), timer?.el ?? h('div')];
+          if (s.input === 'text') return [...parts, h('h2.q-text', s.q.question), textForm(s.asQuestion, (text) => sent('fa', { k: 'finalAnswer', a: { kind: 'text', text } }))];
+          return [...parts, questionInput(d, (a: Answer) => sent('fa', { k: 'finalAnswer', a })).el];
+        }, waitBox('📻', 'Antwort ist drin', 'Warten auf die anderen …'));
+      case 'jfwait': return [waitBox('⚖️', 'Der Spielleiter wertet', 'Gleich werden die Einsätze aufgedeckt.')];
+      case 'jfreveal':
+        return [h(`div.verdict.${s.ok ? 'good' : 'bad'}`, { role: 'status' }, h('strong', s.ok ? '✓ Richtig' : '✗ Falsch'), h('span', `${s.delta > 0 ? '+' : ''}${fmt(s.delta)} Punkte`)),
+          h('div.solution', h('span', 'Richtig ist'), h('strong', s.solution)), h('aside.explain', h('b', 'Boxenfunk: '), s.explanation)];
+      default: return null;
+    }
+  }
+
+  function body(s: AnyScreen): HTMLElement[] {
+    const j = jbody(s as JScreen);
+    if (j) return j;
+    return raceBody(s as Screen);
+  }
+  function raceBody(s: Screen): HTMLElement[] {
     if (s.k === 'lobby') return [h('section.wait', h('p.big-emoji', view!.you.avatar), h('h1', 'Du bist drin!'), h('p.lead', 'Schau auf den großen Bildschirm – gleich geht es los.'))];
     if (s.k === 'done') {
       const won = s.winners.includes(view!.you.name);
@@ -158,12 +258,21 @@ export function playerJoinView(arg?: string): View {
     const sig = JSON.stringify(view.screen);
     const main = el.querySelector<HTMLElement>('.phone-body');
     if (sig !== lastScreen || !main) {
-      const prev = lastScreen ? (JSON.parse(lastScreen) as Screen) : null;
+      const prev = lastScreen ? (JSON.parse(lastScreen) as AnyScreen) : null;
       const s = view.screen;
       timer?.stop(); timer = null;
       if (s.k === 'question' && !s.answered && (prev?.k !== 'question' || prev.index !== s.index)) { vibrate(60); sfx('go'); }
       if (s.k === 'reveal' && prev?.k !== 'reveal') { vibrate(s.status === 'right' ? [40, 40, 40] : 200); sfx(s.fastest ? 'purple' : s.status === 'right' ? 'ok' : 'bad'); }
       if (s.k === 'done' && prev?.k !== 'done') sfx('finish');
+      if (prev && s.k !== prev.k) {
+        if (s.k === 'jbuzz') vibrate(40);
+        if (s.k === 'janswer' && s.you) { vibrate([60, 40, 60]); sfx('go'); }
+        if ((s.k === 'jboard' && s.you) || (s.k === 'jwager' && s.you) || s.k === 'jfwager' || s.k === 'jfanswer' || s.k === 'jallplay') { vibrate(60); sfx('light'); }
+        if (s.k === 'jreveal' && s.delta !== null) { vibrate(s.delta > 0 ? [40, 40, 40] : 200); sfx(s.delta > 0 ? 'ok' : 'bad'); }
+        if (s.k === 'jfreveal') { vibrate(s.ok ? [40, 40, 40] : 200); sfx(s.ok ? 'ok' : 'bad'); }
+        // neue Phase → frühere „schon abgeschickt“-Merker sind erledigt
+        if (!['janswer', 'jallplay', 'jfwager', 'jfanswer', 'jwager'].includes(s.k)) sentKey = '';
+      }
       lastScreen = sig;
       el.replaceChildren(...[banner, head, h('div.phone-body', body(s)), h('footer.phone-foot', h('span', `Raum ${code}`), leaveBtn)].filter((n): n is HTMLElement => n !== null));
       window.scrollTo(0, 0);

@@ -1,3 +1,4 @@
+import type { JAction, JView } from '../core/jeopardy';
 import type { PlayerView } from '../core/race';
 import type { Answer } from '../core/types';
 
@@ -5,6 +6,7 @@ export type ClientMsg =
   | { t: 'hello'; token?: string; name: string; color: string; avatar: string }
   | { t: 'ping'; c: number }
   | { t: 'answer'; index: number; a: Answer; at: number }
+  | { t: 'act'; a: JAction }
   | { t: 'bye' };
 
 export type RejectReason = 'name-taken' | 'full' | 'bad-name';
@@ -12,7 +14,7 @@ export type HostMsg =
   | { t: 'welcome'; id: string; token: string }
   | { t: 'reject'; reason: RejectReason }
   | { t: 'pong'; c: number; h: number }
-  | { t: 'view'; v: PlayerView }
+  | { t: 'view'; v: PlayerView | JView }
   | { t: 'closed' };
 
 export const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // ohne I und O (Verwechslung mit 1 und 0)
