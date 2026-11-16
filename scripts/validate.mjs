@@ -10,6 +10,27 @@ import Ajv from 'ajv';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
+let compiled = null;
+function schemaCheck() {
+  if (!compiled) compiled = new Ajv({ allErrors: true }).compile(JSON.parse(readFileSync(join(root, 'data/schema/question.schema.json'), 'utf8')));
+  return compiled;
+}
+/** Prüft eine Liste von Fragen (z. B. frisch erzeugte, noch nicht geschriebene). Liefert Fehlertexte. */
+export function validateQuestions(questions, folder = 'generated') {
+  const cats = new Set(JSON.parse(readFileSync(join(root, 'data/categories.json'), 'utf8')).map((c) => c.id));
+  const check = schemaCheck();
+  const errors = [];
+  const seen = new Set();
+  if (!check({ questions })) for (const e of check.errors) { if (e.keyword !== 'if') { const m = /^\/questions\/(\d+)/.exec(e.instancePath); errors.push(`${m ? questions[+m[1]]?.id : '?'}: ${e.instancePath} ${e.message}`); } }
+  for (const q of questions) {
+    if (seen.has(q.id)) errors.push(`${q.id}: id doppelt`); seen.add(q.id);
+    if (!cats.has(q.category)) errors.push(`${q.id}: unbekannte Kategorie "${q.category}"`);
+    if ((q.type === 'mc' || q.type === 'image') && Array.isArray(q.options) && (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= q.options.length)) errors.push(`${q.id}: answer zeigt auf keine Option`);
+    if (folder === 'generated' && q.generated !== true) errors.push(`${q.id}: generated muss true sein`);
+  }
+  return errors;
+}
+
 /** Liefert { errors, total, stats }. Wird auch von den Tests benutzt. */
 export function validateAll({ folders = ['curated', 'generated'] } = {}) {
   const schema = JSON.parse(readFileSync(join(root, 'data/schema/question.schema.json'), 'utf8'));

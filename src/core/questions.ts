@@ -41,6 +41,7 @@ export function weightOf(q: Question, level: Level, seen: ReadonlySet<string>): 
   let w = level.weights[q.difficulty] ?? 0;
   if (isFun(q)) w *= level.funBoost;
   if (seen.has(q.id)) w *= 0.1; // kürzlich gespielte Fragen kommen deutlich seltener
+  if (q.generated && q.type !== 'image') w *= 0.5; // Statistik aus dem Generator soll die handgeschriebenen Fragen nicht verdrängen
   return w;
 }
 
