@@ -19,9 +19,9 @@ export function homeView(): View {
       h('nav.modes', { 'aria-label': 'Spielmodi' },
         h('a.mode', { href: '#/solo' }, helmet(), h('h3', 'Solo'), h('p', '10, 20 oder 30 Fragen gegen die Uhr – mit Zeitbonus und Bestenliste.'), h('span.tag.go', 'Start')),
         h('a.mode', { href: '#/party' }, group(), h('h3', 'Ein Gerät, viele Fahrer'), h('p', 'Pass-and-Play für 2–8 Spieler, reihum.'), h('span.tag.go', 'Start')),
-        soon(phones(), 'Party per Handy', 'Host zeigt QR-Code, alle spielen im Browser mit.'),
+        h('a.mode', { href: '#/host' }, phones(), h('h3', 'Party per Handy'), h('p', 'Dieses Gerät zeigt Fragen und QR-Code, alle spielen auf dem eigenen Handy mit.'), h('span.tag.go', 'Raum eröffnen')),
         soon(grid(), 'Grand Prix Jeopardy', 'Board, Buzzer, Safety-Car-Felder und Finale Runde.')),
-      h('p.links', h('a.btn', { href: '#/spielstaende' }, 'Spielstände'), h('a.btn', { href: '#/bestenliste' }, 'Bestenliste'), h('a.btn', { href: '#/historie' }, 'Historie')),
+      h('p.links', h('a.btn', { href: '#/join' }, 'Raum beitreten'), h('a.btn', { href: '#/spielstaende' }, 'Spielstände'), h('a.btn', { href: '#/bestenliste' }, 'Bestenliste'), h('a.btn', { href: '#/historie' }, 'Historie')),
       storageAvailable() ? null : h('p.notice', { role: 'status' }, 'Hinweis: Dein Browser erlaubt kein dauerhaftes Speichern. Spielstände, Bestenliste und Historie gehen beim Schließen verloren.')),
   };
 }

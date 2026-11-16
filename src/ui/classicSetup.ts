@@ -8,18 +8,18 @@ import { h, type View } from './dom';
 import { levelTyre } from './icons';
 import { startSession } from './session';
 
-type Filters = Omit<ClassicSettings, 'length'>;
+export type Filters = Omit<ClassicSettings, 'length'>;
 const FILTER_DEFAULTS: Filters = { level: 'stammgast', categories: null, era: 'alle', seconds: 20 };
 
 type Option<T> = { value: T; title: string; hint?: string; icon?: SVGElement };
-function radios<T extends string | number>(name: string, label: string, options: Option<T>[], current: T, set: (v: T) => void): HTMLElement {
+export function radios<T extends string | number>(name: string, label: string, options: Option<T>[], current: T, set: (v: T) => void): HTMLElement {
   return h('fieldset.field', h('legend', label), h('div.choices', options.map((o) =>
     h('label.choice', h('input', { type: 'radio', name, checked: o.value === current, onchange: () => set(o.value) }),
       h('span', o.icon ?? null, h('span.choice-text', o.title, o.hint ? h('small', o.hint) : null))))));
 }
 
 /** Gemeinsame Felder: Stufe, Zeit, Zeitraum, Kategorien. */
-function filterFields(s: Filters, redraw: () => void): HTMLElement[] {
+export function filterFields(s: Filters, redraw: () => void): HTMLElement[] {
   const all = loadQuestions();
   const used = CATEGORIES.filter((c) => all.some((q) => q.category === c.id));
   const allCats = s.categories === null;
@@ -39,7 +39,7 @@ function filterFields(s: Filters, redraw: () => void): HTMLElement[] {
   ];
 }
 
-function poolNote(pool: number, wanted: number): HTMLElement {
+export function poolNote(pool: number, wanted: number): HTMLElement {
   return h('p.pool', { role: 'status' }, pool === 0 ? 'Zu dieser Auswahl gibt es keine Fragen – bitte Filter lockern.'
     : pool < wanted ? `Nur ${pool} passende Fragen – die Runde wird entsprechend kürzer.` : `${pool} passende Fragen im Pool.`);
 }

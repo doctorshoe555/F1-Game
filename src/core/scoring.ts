@@ -54,15 +54,20 @@ export function points(v: Verdict, timeLeft: number): number {
   return Math.round(BASE_POINTS * v.accuracy + bonus);
 }
 
+/** Zahl einer Schätzfrage für die Anzeige; Jahreszahlen ohne Tausenderpunkt. */
+export function fmtEstimate(q: { answer?: number | boolean; unit?: string }, n: number): string {
+  const isYear = !q.unit && Number.isInteger(q.answer) && (q.answer as number) >= 1000 && (q.answer as number) <= 2100;
+  return isYear && Number.isInteger(n) ? String(n) : n.toLocaleString('de-DE', { maximumFractionDigits: 2 });
+}
+
 /** Text der richtigen Lösung für die Auflösung. */
 export function solutionText(d: Dealt): string {
   const q = d.q;
-  const num = (n: number) => n.toLocaleString('de-DE', { maximumFractionDigits: 2 });
   switch (q.type) {
     case 'mc':
     case 'image': return d.shown[d.correctIndex];
     case 'tf': return q.answer ? 'Wahr' : 'Falsch';
-    case 'estimate': return `${num(q.answer as number)}${q.unit ? ' ' + q.unit : ''}`;
+    case 'estimate': return `${fmtEstimate(q, q.answer as number)}${q.unit ? ' ' + q.unit : ''}`;
     case 'order': return q.items!.join(' → ');
   }
 }

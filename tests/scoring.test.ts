@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { judge, points, solutionText } from '../src/core/scoring';
+import { fmtEstimate, judge, points, solutionText } from '../src/core/scoring';
 import type { Dealt, Question } from '../src/core/types';
 
 const base = { category: 'x', difficulty: 3 as const, tags: [], question: 'Frage?', explanation: 'Darum.', source: 'test', generated: false, lastVerified: '2026-01-01' };
@@ -65,5 +65,12 @@ describe('solutionText', () => {
     expect(solutionText(tf)).toBe('Falsch');
     expect(solutionText(est)).toBe('100 kg');
     expect(solutionText(ord)).toBe('a → b → c → d');
+  });
+  it('schreibt Jahreszahlen ohne Tausenderpunkt, andere Zahlen mit', () => {
+    expect(fmtEstimate({ answer: 1950 }, 1950)).toBe('1950');
+    expect(fmtEstimate({ answer: 1950 }, 2010)).toBe('2010');
+    expect(fmtEstimate({ answer: 7004, unit: 'm' }, 7004)).toBe('7.004');
+    expect(fmtEstimate({ answer: 15000, unit: 'U/min' }, 15000)).toBe('15.000');
+    expect(fmtEstimate({ answer: 1.8, unit: 's' }, 1.8)).toBe('1,8');
   });
 });

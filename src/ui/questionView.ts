@@ -1,6 +1,6 @@
 // Darstellung einer Frage: Eingabe (je nach Typ) und Auflösung.
 import { categoryById } from '../core/questions';
-import { solutionText } from '../core/scoring';
+import { fmtEstimate, solutionText } from '../core/scoring';
 import type { Outcome } from '../core/classic';
 import type { Answer, Dealt } from '../core/types';
 import { fmt, h } from './dom';
@@ -103,7 +103,7 @@ export function questionReveal(d: Dealt, o: Outcome): HTMLElement {
   } else if (q.type === 'estimate') {
     body.append(h('div.solution', h('span', 'Richtig ist'), h('strong', solutionText(d))),
       h('p.your', a?.kind === 'number'
-        ? `Deine Schätzung: ${fmt(a.value)}${q.unit ? ' ' + q.unit : ''} – Abweichung ${fmt(o.verdict.off ?? 0)}`
+        ? `Deine Schätzung: ${fmtEstimate(q, a.value)}${q.unit ? ' ' + q.unit : ''} – Abweichung ${fmt(o.verdict.off ?? 0)}`
         : 'Keine Schätzung abgegeben.'));
   } else {
     const mine = a?.kind === 'order' ? a.items : null;

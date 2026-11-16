@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { answerClassic, createClassic, nextClassic, readyClassic, type ClassicSettings, type ClassicState } from '../src/core/classic';
 import type { Question } from '../src/core/types';
 import { highscoresFor } from '../src/storage/highscores';
-import { listHistory, playerStats, recordClassic } from '../src/storage/history';
+import { createRace, nextQuestion, resolveQuestion, startRace, submitAnswer } from '../src/core/race';
+import { joinRoster } from '../src/core/roster';
+import { listHistory, playerStats, recordClassic, recordRace } from '../src/storage/history';
 import { autosave, deleteSave, exportSave, getSave, importSave, latestAutosave, listSaves, saveNamed } from '../src/storage/saves';
 import { clearMemory, load, save, storageAvailable } from '../src/storage/store';
 
@@ -110,6 +112,17 @@ describe('Historie', () => {
     expect(stats.map((s) => s.name)).toEqual(['Ada', 'Ben']);
     expect(stats[0]).toMatchObject({ games: 3, soloGames: 1, partyGames: 2, wins: 1, best: 1900, correct: 4, answered: 5, fastestMs: 2000 });
     expect(stats[1]).toMatchObject({ games: 2, wins: 1, correct: 1, answered: 3 });
+  });
+  it('trägt ein Quiz-Rennen per Handy einmal als Mehrspieler-Rennen ein', () => {
+    let s = createRace(); let tokens: Record<string, string> = {};
+    for (const name of ['Ada', 'Ben']) { const r = joinRoster(s.players, tokens, { name, color: 'navy', avatar: '🏁' }, () => name); s = { ...s, players: r.players }; tokens = r.tokens; }
+    s = startRace(s, settings, [tf('1')], T0);
+    expect(recordRace('r1', s)).toBe(false);
+    s = nextQuestion(resolveQuestion(submitAnswer(s, 'p2', 0, yes, 3_000)), T0);
+    expect(recordRace('r1', s)).toBe(true);
+    expect(recordRace('r1', s)).toBe(false);
+    expect(listHistory()[0]).toMatchObject({ mode: 'party', players: [{ name: 'Ben', place: 1, correct: 1 }, { name: 'Ada', place: 2, score: 0 }], fastestLap: { name: 'Ben', timeMs: 3000 } });
+    expect(playerStats().find((p) => p.name === 'Ben')).toMatchObject({ wins: 1, partyGames: 1 });
   });
   it('behält höchstens 100 Spiele, das neueste zuerst', () => {
     const s = finished(['Ada'], [yes]);

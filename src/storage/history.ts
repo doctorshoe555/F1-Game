@@ -1,5 +1,7 @@
 // Spielhistorie und Statistik je Spielername.
 import { ranking, type ClassicState } from '../core/classic';
+import type { RaceState } from '../core/race';
+import { rankPlayers } from '../core/roster';
 import type { LevelId } from '../core/types';
 import { addHighscore } from './highscores';
 import { load, save } from './store';
@@ -40,6 +42,20 @@ export function recordClassic(id: string, s: ClassicState, date = new Date().toI
   const me = s.players[0];
   const rank = solo ? addHighscore({ name: me.name, score: me.score, correct: me.correct, length: s.deck.length, level: s.settings.level, date }) : 0;
   return { added: true, rank };
+}
+
+/** Trägt ein beendetes Quiz-Rennen (Party per Handy) genau einmal ein. */
+export function recordRace(id: string, s: RaceState, date = new Date().toISOString()): boolean {
+  const list = listHistory();
+  if (s.phase !== 'done' || !s.players.length || list.some((e) => e.id === id)) return false;
+  const best = s.best && s.players.find((p) => p.id === s.best!.id);
+  const entry: HistoryEntry = {
+    id, date, mode: 'party', level: s.settings.level, length: s.deck.length,
+    players: rankPlayers(s.players).map((r) => ({ name: r.player.name, color: r.player.color, score: r.player.score, correct: r.player.correct, answered: s.deck.length, place: r.place })),
+    fastestLap: best ? { name: best.name, timeMs: s.best!.timeMs } : null,
+  };
+  save(KEY, [entry, ...list].slice(0, MAX));
+  return true;
 }
 
 export interface PlayerStats { name: string; color: string; games: number; soloGames: number; partyGames: number; wins: number; best: number; correct: number; answered: number; fastestMs: number | null }

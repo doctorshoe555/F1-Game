@@ -238,6 +238,62 @@ select { font: inherit; color: var(--text); background: var(--panel); border: 1p
 .game-result { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 4px; }
 .game-result .num { font-variant-numeric: tabular-nums; color: var(--muted); }
 
+/* ---------- Party per Handy: Host (TV) ---------- */
+.page.wide { max-width: 1500px; }
+.notice.bad { border-left-color: var(--bad); }
+.notice .btn { font-size: 1rem; min-height: 40px; padding: 4px 16px; }
+.room-tag { margin: 0 0 8px; color: var(--muted); font-size: .9rem; overflow-wrap: anywhere; }
+.room-tag b { color: #fff; font: 700 1.2rem var(--display); letter-spacing: .12em; }
+.lobby { display: grid; gap: 24px; grid-template-columns: 1fr; }
+@media (min-width: 900px) { .lobby { grid-template-columns: minmax(300px, 5fr) 7fr; align-items: start; } }
+.room { text-align: center; background: var(--panel); border: 1px solid var(--line); border-top: 8px solid var(--red); padding: 16px; }
+.code { font: 700 clamp(4rem, 13vw, 9rem)/1 var(--display); letter-spacing: .12em; margin: 0 0 12px; padding-left: .12em; }
+.qr { background: #fff; padding: 8px; width: min(100%, 360px); margin: 0 auto 10px; }
+.qr svg { display: block; width: 100%; height: auto; }
+.url { font-family: ui-monospace, monospace; font-size: .85rem; overflow-wrap: anywhere; margin: 0; }
+.chips { list-style: none; padding: 0; margin: 14px 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.chips li { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-left: 6px solid var(--team, var(--line)); padding: 4px 10px; font: 600 1.2rem var(--display); text-transform: uppercase; letter-spacing: .03em; }
+.chips.big li { font-size: 1.6rem; padding: 6px 8px 6px 12px; }
+.chips em { font-style: normal; font-size: .8em; color: var(--muted); min-width: 1em; text-align: center; }
+.chips li.ok { border-color: var(--good); border-left-color: var(--team); } .chips li.ok em { color: var(--good); }
+.chips li.off, .tower li.off { opacity: .5; }
+.avatar { font-size: 1.2em; line-height: 1; }
+.icon.small { width: 34px; height: 34px; font-size: .8rem; margin-left: 4px; }
+.settings { margin: 12px 0; border: 1px solid var(--line); padding: 4px 14px 10px; background: rgb(0 0 0 / .3); }
+.settings summary { cursor: pointer; padding: 10px 0; font: 700 1.2rem var(--display); text-transform: uppercase; letter-spacing: .03em; }
+.pills { list-style: none; padding: 0; margin: 10px 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.pills li { background: var(--panel); border: 1px solid var(--line); padding: 8px 14px; }
+.pills li.best { border-color: var(--good); color: var(--good); font-weight: 600; }
+.who-picked { display: block; color: var(--muted); font-size: .8em; }
+.reveal-cols { display: grid; gap: 8px 32px; grid-template-columns: 1fr; }
+@media (min-width: 1000px) { .reveal-cols { grid-template-columns: 3fr 2fr; align-items: start; } .reveal-cols h2 { margin-top: .4em; } }
+.tv .game-head { gap: 16px; }
+@media (min-width: 1000px) {
+  .tv .q-text { font-size: clamp(1.8rem, 2.6vw, 3.2rem); }
+  .tv .option { font-size: clamp(1.1rem, 1.6vw, 1.9rem); min-height: 3.4em; }
+  .tv .count, .tv .score { font-size: clamp(1.9rem, 2.4vw, 3rem); }
+  .tv .tower { font-size: clamp(1.3rem, 1.6vw, 2rem); }
+  .tv .explain, .tv .lead { font-size: clamp(1rem, 1.3vw, 1.5rem); }
+  .tv .q-image img { max-height: 42vh; }
+}
+
+/* ---------- Party per Handy: Spieler ---------- */
+.page.phone { max-width: 560px; }
+.code-input { font: 700 2.2rem var(--display) !important; letter-spacing: .3em; text-transform: uppercase; width: 7.2em !important; text-align: center; }
+.choice.emoji > span { font-size: 1.6rem; padding: 4px 10px; }
+.you { display: flex; align-items: center; gap: 10px; background: #000; border: 1px solid var(--line); border-left: 8px solid var(--team); padding: 6px 12px; margin-bottom: 12px; }
+.you .avatar { font-size: 1.6rem; }
+.you-name { font: 700 1.4rem var(--display); text-transform: uppercase; letter-spacing: .03em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.you-place { font: 700 1.2rem var(--display); background: #fff; color: #000; padding: 0 8px; transform: skewX(var(--skew)); }
+.you .score { font-size: 1.5rem; }
+.wait { text-align: center; padding: 28px 8px; }
+.big-emoji { font-size: 4rem; margin: 0; line-height: 1.1; }
+.phone .count { margin: 0 0 4px; }
+.phone .option { min-height: 72px; font-size: 1.1rem; }
+.phone .verdict { margin-bottom: 8px; }
+.phone .solution { margin-top: 12px; }
+.phone-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+
 /* Tabellen (Credits) */
 .scores { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .scores th { text-align: left; color: var(--muted); font-weight: 400; font-size: .8rem; text-transform: uppercase; }
