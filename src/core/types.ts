@@ -39,7 +39,7 @@ export interface Dealt {
 
 /** Antwort eines Spielers; null = Zeit abgelaufen. */
 export type Answer = { kind: 'choice'; index: number } | { kind: 'bool'; value: boolean }
-  | { kind: 'number'; value: number } | { kind: 'order'; items: string[] } | null;
+  | { kind: 'number'; value: number } | { kind: 'order'; items: string[] } | { kind: 'text'; text: string } | null;
 
 export type LevelId = 'sonntagsfahrer' | 'stammgast' | 'profi' | 'bwoah';
 export type EraId = 'alle' | 'ab2000' | 'ab2014' | 'vor2000';

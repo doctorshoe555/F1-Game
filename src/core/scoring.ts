@@ -18,7 +18,7 @@ export function judge(d: Dealt, a: Answer): Verdict {
   switch (q.type) {
     case 'mc':
     case 'image': {
-      const ok = a.kind === 'choice' && a.index === d.correctIndex;
+      const ok = a.kind === 'text' ? matchesText(d, a.text) : a.kind === 'choice' && a.index === d.correctIndex;
       return { accuracy: ok ? 1 : 0, correct: ok };
     }
     case 'tf': {
@@ -70,4 +70,53 @@ export function solutionText(d: Dealt): string {
     case 'estimate': return `${fmtEstimate(q, q.answer as number)}${q.unit ? ' ' + q.unit : ''}`;
     case 'order': return q.items!.join(' → ');
   }
+}
+
+// ---------- Freitext (Jeopardy) ----------
+/** Vereinheitlicht Text für den Vergleich: klein, ohne Akzente/Satzzeichen/Klammerzusätze, ohne Frageform. */
+export function normalizeText(text: string): string {
+  return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss')
+    .replace(/\(.*?\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim()
+    .replace(/^(wer|was|wo|wann|wie)( oder was)? (ist|sind|war|waren) /, '')
+    .replace(/^(der|die|das|den|dem|ein|eine|einen|the) /, '').trim();
+}
+/** Ist die Antwort als Frage formuliert („Wer ist …?“)? Nur für den Gag-Schalter. */
+export const isPhrasedAsQuestion = (text: string): boolean => /^\s*(wer|was|wo|wann|wie)\b/i.test(text) && /\?\s*$/.test(text);
+
+function levenshtein(a: string, b: string): number {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i];
+    for (let j = 1; j <= b.length; j++) row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = row;
+  }
+  return prev[b.length];
+}
+
+/** Lösungstexte, die als Freitext durchgehen: richtige Option plus `accept`. */
+function acceptedTexts(d: Dealt): string[] {
+  const q = d.q;
+  const right = q.type === 'mc' || q.type === 'image' ? q.options?.[q.answer as number] ?? d.shown[d.correctIndex] : undefined;
+  return [right, ...(q.accept ?? [])].filter((t): t is string => !!t);
+}
+
+/** Lohnt sich Freitext? Nur bei kurzen Lösungen (Namen, Orte) – lange Sätze errät niemand wortgleich. */
+export function textAnswerable(d: Dealt): boolean {
+  if (d.q.type !== 'mc' && d.q.type !== 'image') return false;
+  const main = acceptedTexts(d)[0];
+  return !!main && normalizeText(main).split(' ').length <= 3 && normalizeText(main).length >= 2;
+}
+
+/** Freitext großzügig prüfen: Tippfehler, fehlender Vorname und Frageform werden verziehen. */
+export function matchesText(d: Dealt, text: string): boolean {
+  const given = normalizeText(text);
+  if (!given) return false;
+  return acceptedTexts(d).some((t) => {
+    const want = normalizeText(t);
+    const tolerance = want.length <= 4 ? 0 : want.length <= 8 ? 1 : 2;
+    if (levenshtein(given, want) <= tolerance) return true;
+    // Nachname allein genügt („Hamilton“ für „Lewis Hamilton“), sofern er nicht zu kurz ist
+    const last = want.split(' ').at(-1)!;
+    return want.includes(' ') && last.length >= 4 && levenshtein(given, last) <= (last.length <= 5 ? 0 : 1);
+  });
 }
