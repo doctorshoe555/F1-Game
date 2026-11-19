@@ -1,0 +1,76 @@
+name: Fragen aktualisieren
+
+# Jeden Montagmorgen – also wöchentlich und damit nach jedem Grand-Prix-Wochenende – sowie von Hand.
+on:
+  schedule:
+    - cron: '23 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-questions
+  cancel-in-progress: false
+
+env:
+  BRANCH: auto/fragen-update
+  # Secrets lassen sich in "if" nicht direkt abfragen – daher der Umweg über eine Umgebungsvariable.
+  HAS_LLM_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Antworten der F1-API zwischenspeichern: abgeschlossene Saisons werden nie erneut abgefragt.
+      - uses: actions/cache@v4
+        with:
+          path: .cache/jolpica
+          key: jolpica-${{ github.run_id }}
+          restore-keys: jolpica-
+
+      - name: Fragen neu erzeugen
+        run: npm run update-questions
+
+      # Optional: abschalten, indem das Secret ANTHROPIC_API_KEY fehlt oder die Repository-Variable LLM_SUGGESTIONS auf "off" steht.
+      # Die Vorschläge landen nur in data/questions/review/ und nie ungeprüft im Spiel.
+      - name: LLM-Vorschläge (optional)
+        if: env.HAS_LLM_KEY == 'true' && vars.LLM_SUGGESTIONS != 'off'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/llm-suggest.mjs
+
+      - name: Fragen prüfen (inklusive review/)
+        run: node scripts/validate.mjs --review
+      - name: Tests
+        run: npm test
+
+      - name: Pull Request öffnen, falls sich etwas geändert hat
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add data/questions
+          if git diff --cached --quiet; then
+            echo "Keine Änderungen – nichts zu tun."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git commit -m "Fragen aktualisiert ($(date -u +%Y-%m-%d))"
+          git push --force origin "$BRANCH"
+          if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr create --base "${{ github.event.repository.default_branch }}" --head "$BRANCH" \
+              --title "Fragen-Update $(date -u +%Y-%m-%d)" \
+              --body "Automatisch erzeugt von \`scripts/update-questions.mjs\`. Bitte die Änderungen in \`data/questions/generated/\` kurz durchsehen. Dateien in \`data/questions/review/\` sind ungeprüfte Vorschläge und erscheinen nicht im Spiel."
+          else
+            echo "Offener Pull Request wurde aktualisiert."
+          fi
